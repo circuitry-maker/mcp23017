@@ -1,0 +1,23 @@
+[package]
+name = "mcp23017"
+version = "0.1.0"
+description = "A rust driver for the MCP23017 (16-Bit I2C I/O Expander with Serial Interface)"
+authors = ["Luca Zulian <lucagiuggia@gmail.com>"]
+categories = ["embedded", "hardware-support", "no-std"]
+keywords = ["hal", "IO"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/lucazulian/mcp23017"
+edition = "2018"
+exclude = [
+    ".travis.yml",
+]
+
+[dependencies]
+embedded-hal = "0.2.3"
+generic-array = "0.13.2"
+nb = "0.1.2"
+
+[dependencies.cast]
+default-features = false
+version = "0.2.2"

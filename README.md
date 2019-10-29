@@ -1,6 +1,6 @@
 # `mcp23017`
 
-> no_std driver for [MCP23017](http://ww1.microchip.com/downloads/en/DeviceDoc/20001952C.pdf) (16-Bit I2C I/O Expander with Serial Interface)
+> no_std driver for [MCP23017](http://ww1.microchip.com/downloads/en/DeviceDoc/20001952C.pdf) (16-Bit I2C I/O Expander with Serial Interface module)
 
 [![Build Status](https://travis-ci.org/lucazulian/mcp23017.svg?branch=master)](https://travis-ci.org/lucazulian/mcp23017)
 

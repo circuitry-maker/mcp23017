@@ -4,10 +4,14 @@ rust:
   - beta
   - nightly
 
+before_script:
+  - rustup component add clippy
+
 install:
   - rustup target add thumbv7em-none-eabi
 
 script:
+  - cargo clippy --all-targets --all-features -- -D warnings
   - cargo build --verbose
 
 cache: cargo

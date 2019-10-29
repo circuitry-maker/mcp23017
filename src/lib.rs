@@ -21,7 +21,7 @@ const ADDRESS_DEFAULT: u8 = 0x20;
 /// register. The polarity of the Input Port register can be inverted with the Polarity Inversion register
 pub struct MCP23017<I2C: WriteRead> {
     com: I2C,
-    address: u8,
+    i2c_address: u8,
 }
 
 //https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library/blob/master/Adafruit_MCP23017.h
@@ -52,16 +52,32 @@ where
     }
 
     /// Creates an expander with specific configuration
-    pub fn new(i2c: I2C, address: u8) -> Result<MCP23017<I2C>, Error<E>>
+    pub fn new(i2c: I2C, i2c_address: u8) -> Result<MCP23017<I2C>, Error<E>>
     where
         I2C: WriteRead<Error = E>,
     {
         let chip = MCP23017 {
             com: i2c,
-            address
+            i2c_address
         };
 
         Ok(chip)
+    }
+
+
+
+    fn read_register(_address: u8) -> Result<(u8), E> {
+        Ok(1)
+    }
+
+    fn write_register(_address: u8, _value: u8) -> Result<(), E> {
+        Ok(())
+    }
+
+    /// Updates a register associated with a pin (whether port A/B) reads its value,
+    /// updates the particular bit, and writes its value
+    fn updateRegisterBit(_pin: u8, _pin_value: u8, _port_a_addr: u8, _port_b_addr: u8) -> Result<(), E>  {
+        Ok(())
     }
 }
 

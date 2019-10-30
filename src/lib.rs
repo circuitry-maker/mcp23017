@@ -1,9 +1,20 @@
-#![deny(missing_docs)]
-#![deny(warnings)]
-#![allow(dead_code)]
 #![no_std]
 
 //! Manages a new MCP23017, a 16-Bit I2C I/O Expander with Serial Interface module
+
+#![deny(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    trivial_casts,
+    trivial_numeric_casts,
+    unsafe_code,
+    unstable_features,
+    unused_import_braces,
+    unused_qualifications,
+    warnings
+)]
+#![allow(dead_code)]
 
 extern crate cast;
 extern crate embedded_hal as ehal;
@@ -19,6 +30,7 @@ const ADDRESS_DEFAULT: u8 = 0x20;
 /// The system master can enable the I/Os as either inputs or outputs by writing the I/O configuration
 /// bits (IODIRA/B). The data for each input or output is kept in the corresponding input or output
 /// register. The polarity of the Input Port register can be inverted with the Polarity Inversion register
+#[derive(Debug)]
 pub struct MCP23017<I2C: WriteRead> {
     com: I2C,
     i2c_address: u8,
@@ -33,7 +45,7 @@ pub enum Error<E> {
     BusError(E),
 }
 
-impl<E> core::convert::From<E> for Error<E> {
+impl<E> From<E> for Error<E> {
     fn from(error: E) -> Self {
         Error::BusError(error)
     }
@@ -76,7 +88,7 @@ where
 
     /// Updates a register associated with a pin (whether port A/B) reads its value,
     /// updates the particular bit, and writes its value
-    fn updateRegisterBit(_pin: u8, _pin_value: u8, _port_a_addr: u8, _port_b_addr: u8) -> Result<(), E>  {
+    fn update_register_bit(_pin: u8, _pin_value: u8, _port_a_addr: u8, _port_b_addr: u8) -> Result<(), E>  {
         Ok(())
     }
 }

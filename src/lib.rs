@@ -40,7 +40,7 @@ const HIGH: u8 = 1;
 /// The system master can enable the I/Os as either inputs or outputs by writing the I/O configuration
 /// bits (IODIRA/B). The data for each input or output is kept in the corresponding input or output
 /// register. The polarity of the Input Port register can be inverted with the Polarity Inversion register
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct MCP23017<I2C: WriteRead> {
     com: I2C,
     /// lol

@@ -84,7 +84,6 @@ where
             address
         };
 
-        chip.init_hardware()?;
         Ok(chip)
     }
 

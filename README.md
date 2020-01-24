@@ -20,26 +20,27 @@ extern crate mcp23017;
 
 match mcp23017::MCP23017::default(i2c) {
     Ok(mut u) => {
+        u.init_hardware();
         u.pin_mode(1, mcp23017::PinMode::OUTPUT);   // for the first pin
         u.all_pin_mode(mcp23017::PinMode::OUTPUT);  // or for all pins
 
-        let status = multi.read_gpioab().unwrap();
+        let status = u.read_gpioab().unwrap();
         println!("all {:#?}", status).unwrap();
 
-        let read_a = multi.read_gpio(mcp23017::Port::GPIOA).unwrap();
+        let read_a = u.read_gpio(mcp23017::Port::GPIOA).unwrap();
         println!("port a {:#?}", read_a).unwrap();
 
-        match multi.write_gpioab(65503){
+        match u.write_gpioab(65503){
             Ok(_) => {
-                println!!("ok").unwrap();
+                println!("ok").unwrap();
             }
             _ => {
-                println!!("something wrong").unwrap();
+                println!("something wrong").unwrap();
             }
         }
     }
     Err(mcp23017::MCP23017::Error::BusError(error)) => {
-        println!!("{:#?}", error).unwrap();;
+        println!("{:#?}", error).unwrap();;
         panic!();
     }
     _ => {

@@ -79,7 +79,7 @@ where
     where
         I2C: WriteRead<Error = E>,
     {
-        let mut chip = MCP23017 {
+        let chip = MCP23017 {
             com: i2c,
             address
         };
@@ -88,7 +88,7 @@ where
     }
 
     fn init_hardware(&mut self) -> Result<(), Error<E>> {
-	    // set all inputs to defaults on port A and B
+	// set all inputs to defaults on port A and B
         self.write_register(Register::IODIRA, 0xff)?;
 	    self.write_register(Register::IODIRB, 0xff)?;
 

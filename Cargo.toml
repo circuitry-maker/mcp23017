@@ -17,9 +17,3 @@ exclude = [
 
 [dependencies]
 embedded-hal = "0.2.3"
-generic-array = "0.13.2"
-nb = "0.1.2"
-
-[dependencies.cast]
-default-features = false
-version = "0.2.2"

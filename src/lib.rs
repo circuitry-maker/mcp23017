@@ -31,7 +31,7 @@ const LOW: bool = false;
 #[derive(Clone, Copy, Debug)]
 pub struct MCP23017<I2C: Write + WriteRead> {
     com: I2C,
-    /// lol
+    /// The I2C slave address of this device.
     pub address: u8,
 }
 
@@ -72,14 +72,6 @@ where
         Ok(chip)
     }
 
-    fn init_hardware(&mut self) -> Result<(), Error<E>> {
-        // set all inputs to defaults on port A and B
-        self.write_register(Register::IODIRA, 0xff)?;
-        self.write_register(Register::IODIRB, 0xff)?;
-
-        Ok(())
-    }
-
     fn read_register(&mut self, reg: Register) -> Result<u8, E> {
         let mut data: [u8; 1] = [0];
         self.com.write_read(self.address, &[reg as u8], &mut data)?;
@@ -95,21 +87,11 @@ where
         Ok(buffer)
     }
 
-    fn write_byte(&mut self, reg: Register, byte: u8) -> Result<(), E> {
-        self.com.write(self.address, &[reg as u8, byte])
-    }
-
-    fn read_byte(&mut self, reg: Register) -> Result<u8, E> {
-        let mut data: [u8; 1] = [0];
-        self.com.write_read(self.address, &[reg as u8], &mut data)?;
-        Ok(data[0])
-    }
-
     fn write_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
         self.com.write(self.address, &[reg as u8, byte])
     }
 
-    fn write_16bit(&mut self, reg: Register, word: u16) -> Result<(), E> {
+    fn write_double_register(&mut self, reg: Register, word: u16) -> Result<(), E> {
         let msb = (word >> 8) as u8;
         self.com.write(self.address, &[reg as u8, word as u8, msb])
     }
@@ -152,28 +134,27 @@ where
         Ok((buffer[0] as u16) << 8 + (buffer[1] as u16))
     }
 
-    /// Reads a single port, A or B, and return its current 8 bit value
+    /// Reads a single port, A or B, and return its current 8 bit value.
     pub fn read_gpio(&mut self, port: Port) -> Result<u8, E> {
         let reg = match port {
             Port::GPIOA => Register::GPIOA,
-            _ => Register::GPIOB,
+            Port::GPIOB => Register::GPIOB,
         };
-        self.read_byte(reg)
+        self.read_register(reg)
     }
 
-    /// Writes all the pins with the value at the same time
+    /// Writes all the pins with the value at the same time.
     pub fn write_gpioab(&mut self, value: u16) -> Result<(), E> {
-        self.write_16bit(Register::GPIOA, value)
+        self.write_double_register(Register::GPIOA, value)
     }
 
-    /// Writes all the pins with the value at the same time for GPIOA
-    pub fn write_gpioa(&mut self, value: u8) -> Result<(), E> {
-        self.write_byte(Register::GPIOA, value)
-    }
-
-    /// Writes all the pins with the value at the same time for GPIOB
-    pub fn write_gpiob(&mut self, value: u8) -> Result<(), E> {
-        self.write_byte(Register::GPIOB, value)
+    /// Writes all the pins with the value at the same time for the given port.
+    pub fn write_gpio(&mut self, port:Port, value: u8) -> Result<(), E> {
+        let reg = match port {
+            Port::GPIOA => Register::GPIOA,
+            Port::GPIOB => Register::GPIOB,
+        };
+        self.write_register(reg, value)
     }
 
     /// Writes digital value
@@ -192,11 +173,11 @@ where
     }
 
     /// Reads digital pin
-    pub fn digital_read(&mut self, pin: u8) -> Result<u8, E> {
+    pub fn digital_read(&mut self, pin: u8) -> Result<bool, E> {
         let bit = bit_for_pin(pin);
         let reg = register_for_pin(pin, Register::GPIOA, Register::GPIOB);
         let value = self.read_register(reg)?;
-        Ok((value >> bit) & 0x1)
+        Ok(read_bit(value,bit))
     }
 
     /// The GPPU register controls the pull-up resistors for the port pins.
@@ -204,6 +185,13 @@ where
     /// the corresponding port pin is internally pulled up with a 100 kohm resistor
     pub fn pull_up(&mut self, pin: u8, value: bool) -> Result<(), E> {
         self.update_register_bit(pin, value, Register::GPPUA, Register::GPPUB)
+    }
+
+    /// This register allows the user to configure the polarity on the
+    /// corresponding GPIO port bits.If a bit is set, the corresponding GPIO
+    /// register bit will reflect the inverted value on the pin.
+    pub fn invert_input_polarity(&mut self, pin: u8, value: bool) -> Result<(), E> {
+        self.update_register_bit(pin, value, Register::IPOLA, Register::IPOLB)
     }
 
     /// Configures the interrupt system. both port A and B are assigned the same configuration.
@@ -218,10 +206,10 @@ where
         polarity: Polarity,
     ) -> Result<(), E> {
         // configure port A
-        self.setup_interrupt_port(Register::IOCONA, mirroring, open_drain, p(polarity))?;
+        self.setup_interrupt_port(Register::IOCONA, mirroring, open_drain, polarity)?;
 
         // configure port B
-        self.setup_interrupt_port(Register::IOCONB, mirroring, open_drain, p(polarity))
+        self.setup_interrupt_port(Register::IOCONB, mirroring, open_drain, polarity)
     }
 
     fn setup_interrupt_port(
@@ -229,12 +217,12 @@ where
         register: Register,
         mirroring: bool,
         open_drain: bool,
-        polarity: bool,
+        polarity: Polarity,
     ) -> Result<(), E> {
         let mut io_conf_value = self.read_register(register)?;
         io_conf_value = write_bit(io_conf_value, 6, mirroring);
         io_conf_value = write_bit(io_conf_value, 2, open_drain);
-        io_conf_value = write_bit(io_conf_value, 1, polarity);
+        io_conf_value = write_bit(io_conf_value, 1, polarity.bit_value());
         self.write_register(register, io_conf_value)
     }
 
@@ -268,7 +256,7 @@ where
         // try port A
         let intf_a = self.read_register(Register::INTFA)?;
         for x in 0..8 {
-            if read_bit(intf_a, x) > 0 {
+            if read_bit(intf_a, x) {
                 return Ok(x);
             }
         }
@@ -276,7 +264,7 @@ where
         // try port B
         let intf_b = self.read_register(Register::INTFB)?;
         for x in 0..8 {
-            if read_bit(intf_b, x) > 0 {
+            if read_bit(intf_b, x) {
                 return Ok(x + 8);
             }
         }
@@ -298,6 +286,7 @@ where
     }
 }
 
+/// Changes the bit at position `bit` within `reg` to `val`.
 fn write_bit(reg: u8, bit: u8, val: bool) -> u8 {
     let mut res = reg;
     if val {
@@ -309,17 +298,17 @@ fn write_bit(reg: u8, bit: u8, val: bool) -> u8 {
     res
 }
 
-fn read_bit(reg: u8, bit: u8) -> u8 {
-    // (reg & (1 << bit)) ? 1 : 0
-    reg & (1 << bit)
+/// Returns whether the bit at position `bit` within `reg` is set.
+fn read_bit(reg: u8, bit: u8) -> bool {
+    reg & (1 << bit) != 0
 }
 
-/// Returns bit number associated to a give pin
+/// Returns the bit index associated with a given pin.
 fn bit_for_pin(pin: u8) -> u8 {
     pin % 8
 }
 
-/// Returns register address, port dependent, for a given pin
+/// Returns the register address, port dependent, for a given pin.
 fn register_for_pin(pin: u8, port_a_addr: Register, port_b_addr: Register) -> Register {
     if pin < 8 {
         port_a_addr
@@ -338,6 +327,7 @@ pub enum PinMode {
 }
 
 impl PinMode {
+    /// Returns the binary value of the PinMode, as used in IODIR.
     fn bit_value(&self) -> bool {
         match *self {
             PinMode::INPUT => true,
@@ -345,6 +335,7 @@ impl PinMode {
         }
     }
 
+    /// Returns a whole register full of the binary value of the PinMode.
     fn register_value(&self) -> u8 {
         match *self {
             PinMode::INPUT => 0xff,
@@ -356,27 +347,30 @@ impl PinMode {
 /// Interrupt modes
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum InterruptMode {
-    /// Represent change mode.
+    /// Represents change mode.
     CHANGE = 0,
-    /// Represent falling mode.
+    /// Represents falling mode.
     FALLING = 1,
-    /// Represent rising mode.
+    /// Represents rising mode.
     RISING = 2,
 }
 
 /// Polarity modes
 #[derive(Debug, Copy, Clone)]
 pub enum Polarity {
-    /// Represent low mode
+    /// Represents active-low mode.
     LOW = 0,
-    /// Represent high mode
+    /// Represents active-high mode.
     HIGH = 1,
 }
 
-fn p(polarity: Polarity) -> bool {
-    match polarity {
-        Polarity::LOW => false,
-        Polarity::HIGH => true,
+impl Polarity {
+    /// Returns the binary value of the Polarity, as used in IOCON.
+    fn bit_value(&self) -> bool {
+        match self {
+            Polarity::LOW => false,
+            Polarity::HIGH => true,
+        }
     }
 }
 

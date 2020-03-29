@@ -1,6 +1,13 @@
 #![no_std]
 
-//! Manages a MCP23017, a 16-Bit I2C I/O Expander with Serial Interface module
+//! Manages an MCP23017, a 16-Bit I2C I/O Expander with Serial Interface module.
+//!
+//! This operates the chip in `IOCON.BANK=0` mode, i.e. the registers are mapped sequentially.
+//! This driver does not set `IOCON.BANK`, but the factory default is `0` and this driver does
+//! not change that value.
+//!
+//! See [the datasheet](http://ww1.microchip.com/downloads/en/DeviceDoc/20001952C.pdf) for more
+//! information on the device.
 
 #![deny(
     missing_docs,
@@ -19,15 +26,16 @@ extern crate embedded_hal as ehal;
 
 use ehal::blocking::i2c::{Write, WriteRead};
 
+/// The default I2C address of the MCP23017.
 const DEFAULT_ADDRESS: u8 = 0x20;
+
+/// Binary constants.
 const HIGH: bool = true;
 const LOW: bool = false;
 
-/// Struct for MCP23017. It provides 16-bit, general purpose parallel I/O expansion for I2C bus.
-/// It consists of multiple 8-bit configuration registers for input, output and polarity selection.
-/// The system master can enable the I/Os as either inputs or outputs by writing the I/O configuration
-/// bits (IODIRA/B). The data for each input or output is kept in the corresponding input or output
-/// register. The polarity of the Input Port register can be inverted with the Polarity Inversion register
+/// Struct for an MCP23017.
+/// See the crate-level documentation for general info on the device and the operation of this
+/// driver.
 #[derive(Clone, Copy, Debug)]
 pub struct MCP23017<I2C: Write + WriteRead> {
     com: I2C,
@@ -54,7 +62,7 @@ impl<I2C, E> MCP23017<I2C>
 where
     I2C: WriteRead<Error = E> + Write<Error = E>,
 {
-    /// Creates an expander with default configuration
+    /// Creates an expander with the default configuration.
     pub fn default(i2c: I2C) -> Result<MCP23017<I2C>, Error<E>>
     where
         I2C: Write<Error = E> + WriteRead<Error = E>,
@@ -62,7 +70,7 @@ where
         MCP23017::new(i2c, DEFAULT_ADDRESS)
     }
 
-    /// Creates an expander with specific configuration
+    /// Creates an expander with specific address.
     pub fn new(i2c: I2C, address: u8) -> Result<MCP23017<I2C>, Error<E>>
     where
         I2C: Write<Error = E> + WriteRead<Error = E>,
@@ -80,10 +88,8 @@ where
 
     fn read_double_register(&mut self, reg: Register) -> Result<[u8; 2], E> {
         let mut buffer: [u8; 2] = [0; 2];
-
         self.com
             .write_read(self.address, &[reg as u8], &mut buffer)?;
-
         Ok(buffer)
     }
 
@@ -96,8 +102,10 @@ where
         self.com.write(self.address, &[reg as u8, word as u8, msb])
     }
 
-    /// Updates a register associated with a pin (whether port A/B) reads its value,
-    /// updates the particular bit, and writes its value
+    /// Updates a single bit in the register associated with the given pin.
+    /// This will read the register (`port_a_reg` for pins 0-7, `port_b_reg` for the other eight),
+    /// set the bit (as specified by the pin position within the register), and write the register
+    /// back to the device.
     fn update_register_bit(
         &mut self,
         pin: u8,
@@ -112,7 +120,7 @@ where
         self.write_register(reg, reg_value_mod)
     }
 
-    /// Sets the single pin mode to either Mode::INPUT or Mode::OUTPUT
+    /// Sets the mode for a single pin to either `Mode::INPUT` or `Mode::OUTPUT`.
     pub fn pin_mode(&mut self, pin: u8, pin_mode: PinMode) -> Result<(), E> {
         self.update_register_bit(
             pin,
@@ -122,19 +130,19 @@ where
         )
     }
 
-    /// Sets pin mode to either Mode::INPUT or Mode::OUTPUT
+    /// Sets all pins' modes to either `Mode::INPUT` or `Mode::OUTPUT`.
     pub fn all_pin_mode(&mut self, pin_mode: PinMode) -> Result<(), E> {
         self.write_register(Register::IODIRA, pin_mode.register_value())?;
         self.write_register(Register::IODIRB, pin_mode.register_value())
     }
 
-    /// Reads all 16 pins (port A and B) into a single 16 bits variable
+    /// Reads all 16 pins (port A and B) into a single 16 bit variable.
     pub fn read_gpioab(&mut self) -> Result<u16, E> {
         let buffer = self.read_double_register(Register::GPIOA)?;
         Ok((buffer[0] as u16) << 8 + (buffer[1] as u16))
     }
 
-    /// Reads a single port, A or B, and return its current 8 bit value.
+    /// Reads a single port, A or B, and returns its current 8 bit value.
     pub fn read_gpio(&mut self, port: Port) -> Result<u8, E> {
         let reg = match port {
             Port::GPIOA => Register::GPIOA,
@@ -148,8 +156,8 @@ where
         self.write_double_register(Register::GPIOA, value)
     }
 
-    /// Writes all the pins with the value at the same time for the given port.
-    pub fn write_gpio(&mut self, port:Port, value: u8) -> Result<(), E> {
+    /// Writes all the pins of one port with the value at the same time.
+    pub fn write_gpio(&mut self, port: Port, value: u8) -> Result<(), E> {
         let reg = match port {
             Port::GPIOA => Register::GPIOA,
             Port::GPIOB => Register::GPIOB,
@@ -157,39 +165,38 @@ where
         self.write_register(reg, value)
     }
 
-    /// Writes digital value
+    /// Writes a single bit to a single pin.
+    /// This function internally reads from the output latch register (`OLATA`/`OLATB`) and writes
+    /// to the GPIO register.
     pub fn digital_write(&mut self, pin: u8, value: bool) -> Result<(), E> {
         let bit = bit_for_pin(pin);
-        // read the current GPIO output latches
-        let reg_ol = register_for_pin(pin, Register::OLATA, Register::OLATB);
-        let gpio = self.read_register(reg_ol)?;
+        // Read the current GPIO output latches.
+        let ol_register = register_for_pin(pin, Register::OLATA, Register::OLATB);
+        let gpio = self.read_register(ol_register)?;
 
-        // set the pin and direction
+        // Set the pin.
         let gpio_mod = write_bit(gpio, bit, value);
 
-        // write the new GPIO
+        // Write the modified register.
         let reg_gp = register_for_pin(pin, Register::GPIOA, Register::GPIOB);
         self.write_register(reg_gp, gpio_mod)
     }
 
-    /// Reads digital pin
+    /// Reads a single pin.
     pub fn digital_read(&mut self, pin: u8) -> Result<bool, E> {
         let bit = bit_for_pin(pin);
         let reg = register_for_pin(pin, Register::GPIOA, Register::GPIOB);
         let value = self.read_register(reg)?;
-        Ok(read_bit(value,bit))
+        Ok(read_bit(value, bit))
     }
 
-    /// The GPPU register controls the pull-up resistors for the port pins.
-    /// If a bit is set and the corresponding pin is configured as an input,
-    /// the corresponding port pin is internally pulled up with a 100 kohm resistor
+    /// Enables or disables the internal pull-up resistor for a single pin.
     pub fn pull_up(&mut self, pin: u8, value: bool) -> Result<(), E> {
         self.update_register_bit(pin, value, Register::GPPUA, Register::GPPUB)
     }
 
-    /// This register allows the user to configure the polarity on the
-    /// corresponding GPIO port bits.If a bit is set, the corresponding GPIO
-    /// register bit will reflect the inverted value on the pin.
+    /// Inverts the input polarity for a single pin.
+    /// This uses the `IPOLA` or `IPOLB` registers, see the datasheet for more information.
     pub fn invert_input_polarity(&mut self, pin: u8, value: bool) -> Result<(), E> {
         self.update_register_bit(pin, value, Register::IPOLA, Register::IPOLB)
     }
@@ -317,17 +324,17 @@ fn register_for_pin(pin: u8, port_a_addr: Register, port_b_addr: Register) -> Re
     }
 }
 
-/// Pin modes
+/// Pin modes.
 #[derive(Debug, Copy, Clone)]
 pub enum PinMode {
-    /// Represent input mode
+    /// Represents input mode.
     INPUT = 1,
-    /// Represent output mode
+    /// Represents output mode.
     OUTPUT = 0,
 }
 
 impl PinMode {
-    /// Returns the binary value of the PinMode, as used in IODIR.
+    /// Returns the binary value of the `PinMode`, as used in IODIR.
     fn bit_value(&self) -> bool {
         match *self {
             PinMode::INPUT => true,
@@ -335,7 +342,7 @@ impl PinMode {
         }
     }
 
-    /// Returns a whole register full of the binary value of the PinMode.
+    /// Returns a whole register full of the binary value of the `PinMode`.
     fn register_value(&self) -> u8 {
         match *self {
             PinMode::INPUT => 0xff,
@@ -344,7 +351,7 @@ impl PinMode {
     }
 }
 
-/// Interrupt modes
+/// Interrupt modes.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum InterruptMode {
     /// Represents change mode.
@@ -355,7 +362,7 @@ pub enum InterruptMode {
     RISING = 2,
 }
 
-/// Polarity modes
+/// Polarity modes.
 #[derive(Debug, Copy, Clone)]
 pub enum Polarity {
     /// Represents active-low mode.
@@ -374,12 +381,12 @@ impl Polarity {
     }
 }
 
-/// Generic port definition
+/// Generic port definitions.
 #[derive(Debug, Copy, Clone)]
 pub enum Port {
-    /// Represent GPIOA port generic definition.
+    /// Represent port A.
     GPIOA,
-    /// Represent GPIOB port generic definition.
+    /// Represent port B.
     GPIOB,
 }
 

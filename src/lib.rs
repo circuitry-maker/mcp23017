@@ -139,7 +139,7 @@ where
     /// Reads all 16 pins (port A and B) into a single 16 bit variable.
     pub fn read_gpioab(&mut self) -> Result<u16, E> {
         let buffer = self.read_double_register(Register::GPIOA)?;
-        Ok((buffer[0] as u16) << 8 + (buffer[1] as u16))
+        Ok((buffer[0] as u16) << 8 | (buffer[1] as u16))
     }
 
     /// Reads a single port, A or B, and returns its current 8 bit value.

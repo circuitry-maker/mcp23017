@@ -21,6 +21,7 @@
     warnings
 )]
 #![allow(dead_code, non_camel_case_types)]
+#![allow(clippy::uninit_assumed_init, clippy::upper_case_acronyms)]
 
 extern crate embedded_hal as ehal;
 

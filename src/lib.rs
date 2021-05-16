@@ -81,6 +81,14 @@ where
         Ok(chip)
     }
 
+    fn init_hardware(&mut self) -> Result<(), Error<E>> {
+        // set all inputs to defaults on port A and B
+        self.write_register(Register::IODIRA, 0xff)?;
+        self.write_register(Register::IODIRB, 0xff)?;
+
+        Ok(())
+    }
+
     fn read_register(&mut self, reg: Register) -> Result<u8, E> {
         let mut data: [u8; 1] = [0];
         self.com.write_read(self.address, &[reg as u8], &mut data)?;

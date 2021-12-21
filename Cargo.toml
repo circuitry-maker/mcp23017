@@ -10,7 +10,6 @@ readme = "README.md"
 repository = "https://github.com/lucazulian/mcp23017"
 edition = "2018"
 exclude = [
-    ".travis.yml",
     "docs/",
     "docs/*",
 ]

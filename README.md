@@ -3,7 +3,7 @@
 > no_std driver for [MCP23017](http://ww1.microchip.com/downloads/en/DeviceDoc/20001952C.pdf) (16-Bit I2C I/O Expander with Serial Interface module)
 
 [![Build Status](https://github.com/lucazulian/mcp23017/workflows/mcp23017-ci/badge.svg)](https://github.com/lucazulian/mcp23017/actions?query=workflow%3Amcp23017-ci)
-[![crates.io](http://meritbadge.herokuapp.com/mcp23017?style=flat-square)](https://crates.io/crates/mcp23017)
+[![crates.io](https://img.shields.io/crates/v/mcp23017.svg)](https://crates.io/crates/mcp23017)
 [![Docs](https://docs.rs/mcp23017/badge.svg)](https://docs.rs/mcp23017)
 
 ## Basic usage

@@ -81,6 +81,7 @@ where
         Ok(chip)
     }
 
+    /// Initiates hardware with basic setup.
     pub fn init_hardware(&mut self) -> Result<(), Error<E>> {
         // set all inputs to defaults on port A and B
         self.write_register(Register::IODIRA, 0xff)?;

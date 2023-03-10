@@ -16,3 +16,4 @@ exclude = [
 
 [dependencies]
 embedded-hal = "0.2.3"
+nb = "1.0.0"

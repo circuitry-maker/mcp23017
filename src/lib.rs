@@ -301,6 +301,15 @@ where
             Err(e) => Err(e),
         }
     }
+
+    /// Get the complete value captured at the last interrupt of the specified port
+    pub fn get_captured_value(&mut self, port: Port) -> Result<u8, E> {
+        let reg = match port {
+            Port::GPIOA => Register::INTCAPA,
+            Port::GPIOB => Register::INTCAPB,
+        };
+        self.read_register(reg)
+    }
 }
 
 /// Changes the bit at position `bit` within `reg` to `val`.

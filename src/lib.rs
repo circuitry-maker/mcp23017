@@ -25,7 +25,7 @@
 
 extern crate embedded_hal as ehal;
 
-use ehal::blocking::i2c::{Write, WriteRead};
+use ehal::i2c::I2c;
 
 /// The default I2C address of the MCP23017.
 const DEFAULT_ADDRESS: u8 = 0x20;
@@ -38,7 +38,7 @@ const LOW: bool = false;
 /// See the crate-level documentation for general info on the device and the operation of this
 /// driver.
 #[derive(Clone, Copy, Debug)]
-pub struct MCP23017<I2C: Write + WriteRead> {
+pub struct MCP23017<I2C: I2c> {
     com: I2C,
     /// The I2C slave address of this device.
     pub address: u8,
@@ -61,12 +61,12 @@ impl<E> From<E> for Error<E> {
 
 impl<I2C, E> MCP23017<I2C>
 where
-    I2C: WriteRead<Error = E> + Write<Error = E>,
+    I2C: I2c<Error = E>,
 {
     /// Creates an expander with the default configuration.
     pub fn default(i2c: I2C) -> Result<MCP23017<I2C>, Error<E>>
     where
-        I2C: Write<Error = E> + WriteRead<Error = E>,
+        I2C: I2c<Error = E>,
     {
         MCP23017::new(i2c, DEFAULT_ADDRESS)
     }
@@ -74,7 +74,7 @@ where
     /// Creates an expander with specific address.
     pub fn new(i2c: I2C, address: u8) -> Result<MCP23017<I2C>, Error<E>>
     where
-        I2C: Write<Error = E> + WriteRead<Error = E>,
+        I2C: I2c<Error = E>,
     {
         let chip = MCP23017 { com: i2c, address };
 

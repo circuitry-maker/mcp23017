@@ -70,7 +70,7 @@ jobs:
           - x86_64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -91,8 +91,10 @@ jobs:
           args: --all -- --check
 
       - name: Clippy
-        uses: actions/checkout@v4
-        run: cargo clippy --all-targets --all-features
+        uses: actions-rs/clippy-check@v1
+        with:
+          args: --all-targets --all-features -- -D warnings
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   test:
     name: Tests

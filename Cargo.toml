@@ -1,6 +1,6 @@
 [package]
 name = "mcp23017"
-version = "1.0.0"
+version = "1.1.0"
 description = "A rust driver for the MCP23017 (16-Bit I2C I/O Expander with Serial Interface)"
 authors = ["Luca Zulian <lucagiuggia@gmail.com>"]
 categories = ["embedded", "hardware-support", "no-std"]

@@ -90,8 +90,7 @@ jobs:
         rust: [ stable ]
         TARGET: [ x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl ]
         include:
-          - rust: nightly
-            experimental: true
+          - experimental: true
 
     steps:
       - uses: actions/checkout@v4

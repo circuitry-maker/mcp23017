@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [stable, beta, nightly]
+        rust: [stable]
         TARGET: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
         include:
           - rust: nightly

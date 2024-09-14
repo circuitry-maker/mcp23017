@@ -7,7 +7,7 @@ categories = ["embedded", "hardware-support", "no-std"]
 keywords = ["hal", "IO"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/lucazulian/mcp23017"
+repository = "https://github.com/circuitry-maker/mcp23017"
 edition = "2018"
 exclude = [
     "docs/",

@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [stable, beta, nightly, 1.52.1]
+        rust: [ stable, beta, nightly, 1.52.1 ]
         TARGET:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [stable, beta]
+        rust: [ stable, beta ]
         TARGET:
           - x86_64-unknown-linux-gnu
 
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [ stable, beta, nightly ]
+        rust: [ stable ]
         TARGET: [ x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl ]
         include:
           - rust: nightly
@@ -108,8 +108,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [stable]
-        TARGET: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
+        rust: [ stable, beta, nightly ]
+        TARGET: [ x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl ]
         include:
           - rust: nightly
             experimental: true

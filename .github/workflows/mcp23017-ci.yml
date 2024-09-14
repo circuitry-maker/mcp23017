@@ -62,7 +62,7 @@ jobs:
           - x86_64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -81,12 +81,6 @@ jobs:
         with:
           command: fmt
           args: --all -- --check
-
-      - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          args: --all-targets --all-features -- -D warnings
-          token: ${{ secrets.GITHUB_TOKEN }}
 
   clippy:
     runs-on: ubuntu-latest
@@ -108,7 +102,7 @@ jobs:
           - rust: nightly
             experimental: true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal

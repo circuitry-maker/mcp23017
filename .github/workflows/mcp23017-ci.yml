@@ -7,8 +7,6 @@ on:
       - '**'
     tags:
       - "*.*.*"
-  schedule:
-    - cron: 0 0 * * 0
 
 env:
   RUSTFLAGS: '--deny warnings'
@@ -54,12 +52,6 @@ jobs:
       - run: ./ci/patch-no-std.sh
         if: ${{ ! contains(matrix.TARGET, 'x86_64') }}
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target=${{ matrix.TARGET }}
-
   checks:
     name: Checks
     runs-on: ubuntu-latest
@@ -95,6 +87,15 @@ jobs:
         with:
           args: --all-targets --all-features -- -D warnings
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --all-features -- --deny=warnings
 
   test:
     name: Tests

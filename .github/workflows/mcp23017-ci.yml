@@ -7,8 +7,6 @@ on:
       - '**'
     tags:
       - "*.*.*"
-  schedule:
-    - cron: 0 0 * * 0
 
 env:
   RUSTFLAGS: '--deny warnings'
@@ -19,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [stable, beta, nightly, 1.52.1, 1.49.0]
+        rust: [ stable, beta, nightly, 1.52.1 ]
         TARGET:
           - x86_64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
@@ -54,23 +52,17 @@ jobs:
       - run: ./ci/patch-no-std.sh
         if: ${{ ! contains(matrix.TARGET, 'x86_64') }}
 
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target=${{ matrix.TARGET }}
-
   checks:
     name: Checks
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [stable, beta]
+        rust: [ stable, beta ]
         TARGET:
           - x86_64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -90,24 +82,47 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - name: Clippy
-        uses: actions-rs/clippy-check@v1
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [ stable ]
+        TARGET:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - arm-unknown-linux-gnueabi # Raspberry Pi 1
+          - armv7-unknown-linux-gnueabihf # Raspberry Pi 2, 3, etc
+          # Bare metal
+          - thumbv6m-none-eabi
+          - thumbv7em-none-eabi
+          - thumbv7em-none-eabihf
+          - thumbv7m-none-eabi
+        include:
+          - experimental: true
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
         with:
-          args: --all-targets --all-features -- -D warnings
-          token: ${{ secrets.GITHUB_TOKEN }}
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.TARGET }}
+          override: true
+      - run: cargo clippy --all-features -- --deny=warnings
 
   test:
     name: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [stable, beta, nightly]
-        TARGET: [x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl]
+        rust: [ stable, beta, nightly ]
+        TARGET: [ x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl ]
         include:
           - rust: nightly
             experimental: true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
